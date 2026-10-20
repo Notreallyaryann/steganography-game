@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LeaderboardClient from "@/components/LeaderboardClient";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://stegame.vercel.app";
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://steganography-game.vercel.app";
 
 export const metadata: Metadata = {
   title: "Global Operative Leaderboard: Top Steganography Scores",

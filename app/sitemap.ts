@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { MISSIONS } from "@/lib/game/missions";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://stegame.vercel.app";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://steganography-game.vercel.app";
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [

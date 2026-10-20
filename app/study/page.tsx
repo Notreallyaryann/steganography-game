@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import StudyClient from "@/components/StudyClient";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://stegame.vercel.app";
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://steganography-game.vercel.app";
 
 export const metadata: Metadata = {
   title: "Steganography Tutorial & Field Manual: LSB, MSB, Bit Planes & Steganalysis",

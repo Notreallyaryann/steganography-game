@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Nav from "@/components/Nav";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://stegame.vercel.app";
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://steganography-game.vercel.app";
 
 export const viewport: Viewport = {
   themeColor: "#0f1b24",
