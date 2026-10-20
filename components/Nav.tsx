@@ -1,4 +1,5 @@
 import Link from "next/link";
+import NavAgent from "./NavAgent";
 
 export default function Nav() {
   return (
@@ -8,8 +9,12 @@ export default function Nav() {
       </Link>
       <nav aria-label="Main">
         <Link href="/play">Play</Link>
+        <Link href="/study">Study</Link>
+        <Link href="/leaderboard">Leaderboard</Link>
         <Link href="/studio">Studio</Link>
+        <NavAgent />
       </nav>
     </header>
   );
 }
+

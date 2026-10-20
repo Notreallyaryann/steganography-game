@@ -5,9 +5,12 @@ import type { PublicMission } from "@/lib/game/missions";
 import { computeScore, TIER_POINTS } from "@/lib/game/scoring";
 import { loadProgress, saveProgress, type MissionProgress, type ProgressMap } from "@/lib/game/progress";
 import { loadImageUrl, type Pixels } from "@/lib/stego/image";
+import type { Channel, Direction } from "@/lib/stego/lsb";
 import BitPlaneViewer from "./BitPlaneViewer";
 import Extractor from "./Extractor";
 import Decoder from "./Decoder";
+import AgentHandle from "./AgentHandle";
+import { getStoredUsername } from "@/lib/game/user";
 
 function fmt(sec: number): string {
   return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
@@ -19,10 +22,29 @@ export default function MissionClient({ mission }: { mission: PublicMission }) {
   const [prog, setProg] = useState<MissionProgress | null>(null);
   const [hints, setHints] = useState<string[]>([]);
   const [payload, setPayload] = useState<Uint8Array | null>(null);
+  const [tunedParams, setTunedParams] = useState<{
+    plane: number;
+    channels: Channel[];
+    direction?: Direction;
+  } | null>(null);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState("");
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
+  const [myHandle, setMyHandle] = useState<string | null>(null);
+  const [scoreSaved, setScoreSaved] = useState(false);
+
+  useEffect(() => {
+    setMyHandle(getStoredUsername());
+    const handler = (e: Event) => {
+      const custom = e as CustomEvent<string | null>;
+      setMyHandle(custom.detail);
+    };
+    window.addEventListener("agent-handle-changed", handler);
+    return () => window.removeEventListener("agent-handle-changed", handler);
+  }, []);
+
+
 
   const update = useCallback(
     (fn: (p: MissionProgress) => MissionProgress) => {
@@ -104,6 +126,11 @@ export default function MissionClient({ mission }: { mission: PublicMission }) {
             wrong: prog!.wrong,
           });
           update((p) => ({ ...p, solved: { score, at: Date.now() } }));
+
+          const handle = getStoredUsername();
+          if (handle) {
+            saveScoreToDb(handle, score);
+          }
         } else {
           update((p) => ({ ...p, wrong: p.wrong + 1 }));
           setFeedback("That is not it. Each wrong report costs 25 points.");
@@ -113,6 +140,25 @@ export default function MissionClient({ mission }: { mission: PublicMission }) {
       setFeedback("Could not reach the server.");
     }
     setBusy(false);
+  }
+
+  async function saveScoreToDb(handle: string, score: number) {
+    try {
+      const res = await fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: handle,
+          missionId: mission.id,
+          score,
+          elapsedSec: elapsed,
+          hintsUsed: prog?.hintsUsed ?? 0,
+        }),
+      });
+      if (res.ok) setScoreSaved(true);
+    } catch {
+      /* ignore */
+    }
   }
 
   return (
@@ -134,12 +180,29 @@ export default function MissionClient({ mission }: { mission: PublicMission }) {
       <section className="panel">
         <h2>Evidence</h2>
         {loadError && <p className="err">{loadError}</p>}
-        {img ? <BitPlaneViewer pixels={img.pixels} width={img.width} height={img.height} /> : !loadError && <p className="note">Loading evidence…</p>}
+        {img ? (
+          <BitPlaneViewer
+            pixels={img.pixels}
+            width={img.width}
+            height={img.height}
+            onAimExtractor={setTunedParams}
+          />
+        ) : (
+          !loadError && <p className="note">Loading evidence…</p>
+        )}
       </section>
 
       <section className="panel">
         <h2>Extractor</h2>
-        {img && <Extractor pixels={img.pixels} width={img.width} height={img.height} onSend={setPayload} />}
+        {img && (
+          <Extractor
+            pixels={img.pixels}
+            width={img.width}
+            height={img.height}
+            onSend={setPayload}
+            presetParams={tunedParams}
+          />
+        )}
       </section>
 
       <section className="panel">
@@ -152,9 +215,24 @@ export default function MissionClient({ mission }: { mission: PublicMission }) {
         {solved ? (
           <div className="solved">
             <p className="ok big">Mission complete: {solved.score} points.</p>
-            <Link className="btn primary" href="/play">
-              Back to missions
-            </Link>
+            {scoreSaved ? (
+              <p className="ok">✓ Score recorded on the Global Leaderboard for Operative @{myHandle}!</p>
+            ) : myHandle ? (
+              <p className="note">Logged under Operative @{myHandle}</p>
+            ) : (
+              <div className="claim-prompt">
+                <p className="note strong">Claim an operative username to post your score to the Global Leaderboard:</p>
+                <AgentHandle onClaimed={(username) => saveScoreToDb(username, solved.score)} />
+              </div>
+            )}
+            <div style={{ display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap" }}>
+              <Link className="btn primary" href="/play">
+                Back to missions
+              </Link>
+              <Link className="btn" href="/leaderboard">
+                View Leaderboard
+              </Link>
+            </div>
           </div>
         ) : (
           <>

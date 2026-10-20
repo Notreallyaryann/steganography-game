@@ -166,4 +166,18 @@ await t("server answer check: normalised, salted, no plaintext shipped", async (
   for (const m of MISSIONS) assert.equal(HINTS[m.id].length, m.hintCosts.length);
 });
 
+await t("radar: detects anomalous plane, channel and direction", async () => {
+  const { analyzePlanes } = await import("../lib/stego/radar.ts");
+  const px = randomPixels(64, 64);
+  const msg = new Uint8Array(400).fill(0x55);
+  // Embed in plane 3, green channel only
+  const stego = embed(px, 64, 64, msg, { plane: 3, channels: ["g"], bitOrder: "msb-first", direction: "row" });
+  const report = analyzePlanes(stego, 64, 64);
+  const p3 = report.planes.find((p) => p.plane === 3);
+  assert.ok(p3);
+  assert.equal(p3.hasAnomaly, true);
+  assert.ok(p3.anomalyChannels.includes("g"));
+});
+
+
 console.log(`\n${passed} tests passed`);
